@@ -8,6 +8,11 @@ sed -i -e "s/<APC_SHM_SIZE>/$APC_SHM_SIZE/g" /php/conf.d/apcu.ini \
        -e "s/<UPLOAD_MAX_SIZE>/$UPLOAD_MAX_SIZE/g" /nginx/conf/nginx.conf /php/etc/php-fpm.conf \
        -e "s/<MEMORY_LIMIT>/$MEMORY_LIMIT/g" /php/etc/php-fpm.conf
 
+if [[ ! -z "$REDIS_SERVER"  ]]; then
+      echo "php_admin_value[session.save_handler] = redis" >> /php/etc/php-fpm.conf \
+      && sed -i "s/\/php\/session/tcp:\/\/$REDIS_SERVER:$REDIS_PORT/g" /php/etc/php-fpm.conf
+fi
+
 # Put the configuration and apps into volumes
 ln -sf /config/config.php /nextcloud/config/config.php &>/dev/null
 ln -sf /apps2 /nextcloud &>/dev/null
@@ -17,6 +22,7 @@ if [ ! -d /data/session ]; then
   mkdir -p /data/session;
 fi
 
+touch /data/.ocdata
 echo "Updating permissions..."
 for dir in /nextcloud /data /config /apps2 /var/log /php /nginx /tmp /etc/s6.d; do
   if $(find $dir ! -user $UID -o ! -group $GID|egrep '.' -q); then
